@@ -1,87 +1,57 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
-import api from "../api";
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import apiClient from '../api/axios';
 
 const Login = () => {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+    const [formData, setFormData] = useState({ email: '', password: '' });
+    const [error, setError] = useState('');
     const navigate = useNavigate();
 
-    const loginMutation = useMutation({
-        mutationFn: async (data) => {
-            const response = await api.post("/login/", data);
-            return response.data;
-        },
-        onSuccess: (data) => {
-            localStorage.setItem("token", data.token);
-            navigate("/");
-        },
-        onError: (error) => {
-            alert(error.response?.data?.message || "Login failed");
-        },
-    });
-
-    const handleLogin = (e) => {
-        e.preventDefault();
-        loginMutation.mutate({ email, password });
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleRegisterRedirect = () => {
-        navigate("/register");
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError(''); // Clear previous errors
+        try {
+            const response = await apiClient.post('login/', formData);
+            const { token } = response.data; // Assuming the backend sends a token
+            localStorage.setItem('authToken', token); // Save the token for future requests
+            navigate('/dashboard'); // Redirect to the dashboard or another page
+        } catch (error) {
+            setError(error.response?.data?.error || 'Invalid credentials'); // Display error
+        }
     };
 
     return (
-        <div className="flex justify-center items-center h-screen bg-gray-100">
-            <form
-                onSubmit={handleLogin}
-                className="bg-white p-8 shadow-md rounded-md w-96"
-            >
-                <h2 className="text-2xl font-bold mb-4">Login</h2>
-                <div className="mb-4">
-                    <label htmlFor="email" className="block font-medium mb-1">
-                        Email
-                    </label>
-                    <input
-                        type="email"
-                        id="email"
-                        className="w-full border px-4 py-2 rounded-md"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                    />
-                </div>
-                <div className="mb-4">
-                    <label htmlFor="password" className="block font-medium mb-1">
-                        Password
-                    </label>
-                    <input
-                        type="password"
-                        id="password"
-                        className="w-full border px-4 py-2 rounded-md"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                    />
-                </div>
+        <div className="max-w-md mx-auto bg-white p-6 rounded shadow">
+            <h2 className="text-2xl font-bold mb-4">Login</h2>
+            <form onSubmit={handleSubmit}>
+                <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Email"
+                    className="w-full mb-3 p-2 border rounded"
+                />
+                <input
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Password"
+                    className="w-full mb-3 p-2 border rounded"
+                />
                 <button
                     type="submit"
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md w-full"
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
                 >
                     Login
                 </button>
-
-                <div className="text-center">
-                    <p className="text-sm">
-                        Already have an account?{" "}
-                        <button
-                            type="button"
-                            onClick={handleRegisterRedirect}
-                            className="text-blue-600 hover:underline"
-                        >
-                            Register
-                        </button>
-                    </p>
-                </div>
             </form>
+            {error && <p className="mt-3 text-red-500">{error}</p>}
         </div>
     );
 };
